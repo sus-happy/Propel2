@@ -70,6 +70,11 @@ class SchemaTest extends ModelTestCase
     public function testJoinMultipleSchemasWithSameDatabase()
     {
         $behavior = $this->getBehaviorMock('sluggable');
+        $behavior
+            ->expects($this->any())
+            ->method('hasBehavior')
+            ->will($this->returnValue(false))
+        ;
 
         $tables[] = $this->getTableMock('books');
         $tables[] = $this->getTableMock('authors');

@@ -135,8 +135,7 @@ PHP class or method name.
 <!ELEMENT reference EMPTY>
 <!ATTLIST reference
   local CDATA #REQUIRED
-  foreign CDATA #IMPLIED
-  value CDATA #IMPLIED
+  foreign CDATA #REQUIRED
 >
 
 <!ELEMENT index (index-column+,vendor*)>

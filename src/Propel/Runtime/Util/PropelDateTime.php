@@ -58,33 +58,6 @@ class PropelDateTime extends \DateTime
     }
 
     /**
-     * Creates a new DateTime object with milliseconds resolution.
-     *
-     * Usually `new \Datetime()` does not contain milliseconds so you need a method like this.
-     *
-     * @param bool $time optional in seconds. floating point allowed.
-     *
-     * @return \DateTime
-     */
-    public static function createHighPrecision($time = null)
-    {
-        return \DateTime::createFromFormat('U.u', $time ?: self::getMicrotime());
-    }
-
-    /**
-     * Get the current microtime with milliseconds. Making sure that the decimal point separator is always ".", ignoring
-     * what is set with the current locale. Otherwise self::createHighPrecision would return false.
-     *
-     * @return string
-     */
-    public static function getMicrotime()
-    {
-        $mtime = microtime(true);
-
-        return str_replace(',', '.', $mtime);
-    }
-
-    /**
      * Factory method to get a DateTime object from a temporal input
      *
      * @param mixed        $value         The value to convert (can be a string, a timestamp, or another DateTime)
@@ -97,7 +70,7 @@ class PropelDateTime extends \DateTime
      */
     public static function newInstance($value, DateTimeZone $timeZone = null, $dateTimeClass = 'DateTime')
     {
-        if ($value instanceof \DateTimeInterface) {
+        if ($value instanceof \DateTime) {
             return $value;
         }
         if (empty($value)) {
@@ -107,14 +80,7 @@ class PropelDateTime extends \DateTime
         }
         try {
             if (self::isTimestamp($value)) { // if it's a unix timestamp
-
-                $format = 'U';
-                if (strpos($value, '.')) {
-                    //with milliseconds
-                    $format = 'U.u';
-                }
-
-                $dateTimeObject = \DateTime::createFromFormat($format, $value, new \DateTimeZone('UTC'));
+                $dateTimeObject = new $dateTimeClass('@' . $value, new \DateTimeZone('UTC'));
                 // timezone must be explicitly specified and then changed
                 // because of a DateTime bug: http://bugs.php.net/bug.php?id=43003
                 $dateTimeObject->setTimeZone(new \DateTimeZone(date_default_timezone_get()));

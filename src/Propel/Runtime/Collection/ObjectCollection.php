@@ -47,7 +47,7 @@ class ObjectCollection extends Collection
         $this->rebuildIndex();
     }
 
-    public function setData($data)
+    public function setData($data) 
     {
         parent::setData($data);
         $this->rebuildIndex();
@@ -379,8 +379,7 @@ class ObjectCollection extends Collection
             return $this->index[$this->indexSplHash[$splHash]];
         }
 
-        $hashCode = $this->getHashCode($element);
-        if (isset($this->index[$hashCode])) {
+        if (isset($this->index[$hashCode = $element->hashCode()])) {
             return $this->index[$hashCode];
         }
 
@@ -392,7 +391,7 @@ class ObjectCollection extends Collection
         $this->index = [];
         $this->indexSplHash = [];
         foreach ($this->data as $idx => $value){
-            $hashCode = $this->getHashCode($value);
+            $hashCode = $value->hashCode();
             $this->index[$hashCode] = $idx;
             $this->indexSplHash[spl_object_hash($value)] = $hashCode;
         }
@@ -406,7 +405,7 @@ class ObjectCollection extends Collection
         if (isset($this->data[$offset])) {
             if (is_object($this->data[$offset])) {
                 unset($this->indexSplHash[spl_object_hash($this->data[$offset])]);
-                unset($this->index[$this->getHashCode($this->data[$offset])]);
+                unset($this->index[$this->data[$offset]->hashCode()]);
             }
             unset($this->data[$offset]);
         }
@@ -432,13 +431,10 @@ class ObjectCollection extends Collection
             return;
         }
 
+        $pos = count($this->data);
+        $this->index[$value->hashCode()] = $pos;
+        $this->indexSplHash[spl_object_hash($value)] = $value->hashCode();
         $this->data[] = $value;
-        end($this->data);
-        $pos = key($this->data);
-
-        $hashCode = $this->getHashCode($value);
-        $this->index[$hashCode] = $pos;
-        $this->indexSplHash[spl_object_hash($value)] = $hashCode;
     }
 
     /**
@@ -452,19 +448,16 @@ class ObjectCollection extends Collection
             return;
         }
 
-        $hashCode = $this->getHashCode($value);
+        $hashCode = $value->hashCode();
 
         if (is_null($offset)) {
-            $this->data[] = $value;
-            end($this->data);
-            $pos = key($this->data);
-
-            $this->index[$hashCode] = $pos;
+            $this->index[$hashCode] = count($this->data);
             $this->indexSplHash[spl_object_hash($value)] = $hashCode;
+            $this->data[] = $value;
         } else {
             if (isset($this->data[$offset])) {
                 unset($this->indexSplHash[spl_object_hash($this->data[$offset])]);
-                unset($this->index[$this->getHashCode($this->data[$offset])]);
+                unset($this->index[$this->data[$offset]->hashCode()]);
             }
 
             $this->index[$hashCode] = $offset;
@@ -482,20 +475,6 @@ class ObjectCollection extends Collection
             return parent::contains($element);
         }
 
-        return isset($this->indexSplHash[spl_object_hash($element)]) || isset($this->index[$this->getHashCode($element)]);
-    }
-
-    /**
-     * Returns the result of $object->hashCode() if available or uses spl_object_hash($object).
-     *
-     * @param mixed $object
-     */
-    protected function getHashCode($object)
-    {
-        if (is_object($object) && is_callable([$object, 'hashCode'])) {
-            return $object->hashCode();
-        }
-
-        return spl_object_hash($object);
+        return isset($this->indexSplHash[spl_object_hash($element)]) || isset($this->index[$element->hashCode()]);
     }
 }

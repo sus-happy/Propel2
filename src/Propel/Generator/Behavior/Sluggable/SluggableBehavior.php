@@ -330,9 +330,9 @@ protected function makeSlugUnique(\$slug, \$separator = '" . $this->getParameter
         ->prune(\$this)";
 
         if ($this->getParameter('scope_column')) {
-            $scope_column = $this->getColumnForParameter('scope_column')->getPhpName();
+            $getter = 'get' . $this->getColumnForParameter('scope_column')->getPhpName();
             $script .= "
-            ->filterBy('{$scope_column}', \$this->get{$scope_column}())";
+            ->filterBy('{$this->getColumnForParameter('scope_column')->getPhpName()}', \$this->{$getter}())";
         }
         // watch out: some of the columns may be hidden by the soft_delete behavior
         if ($this->table->hasBehavior('soft_delete')) {

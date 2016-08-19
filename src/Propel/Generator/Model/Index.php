@@ -183,7 +183,8 @@ class Index extends MappingModel
         if ($data instanceof Column) {
             $column = $data;
             $this->columns[] = $column->getName();
-            if ($column->getSize()) {
+            // @todo: Append check isNumericType
+            if (! $column->isNumericType() && $column->getSize()) {
                 $this->columnsSize[$column->getName()] = $column->getSize();
             }
             $this->columnObjects[] = $column;

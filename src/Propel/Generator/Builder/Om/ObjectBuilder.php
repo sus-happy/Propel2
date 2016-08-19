@@ -23,7 +23,6 @@ use Propel\Generator\Platform\MysqlPlatform;
 use Propel\Generator\Platform\OraclePlatform;
 use Propel\Generator\Platform\PlatformInterface;
 use Propel\Generator\Platform\SqlsrvPlatform;
-use Propel\Runtime\Exception\PropelException;
 
 /**
  * Generates a PHP5 base Object class for user object model (OM).
@@ -235,8 +234,8 @@ class ObjectBuilder extends AbstractObjectBuilder
  *";
             }
             $script .= "
- * @package    propel.generator.".$this->getPackage()."
- */";
+* @package    propel.generator.".$this->getPackage()."
+*/";
         }
 
         $script .= "
@@ -470,7 +469,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     protected function addColumnAttributeComment(&$script, Column $column)
     {
         if ($column->isTemporalType()) {
-            $cptype = $this->getDateTimeClass($column);
+            $cptype = $this->getBuildProperty('dateTimeClass');
+            if (!$cptype) {
+                $cptype = '\DateTime';
+            }
         } else {
             $cptype = $column->getPhpType();
         }
@@ -743,7 +745,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $clo = $column->getLowercasedName();
             $defaultValue = $this->getDefaultValueString($column);
             if ($column->isTemporalType()) {
-                $dateTimeClass = $this->getDateTimeClass($column);
+                $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
+                if (!$dateTimeClass) {
+                    $dateTimeClass = '\DateTime';
+                }
                 $script .= "
         \$this->".$clo." = PropelDateTime::newInstance($defaultValue, null, '$dateTimeClass');";
             } else {
@@ -789,7 +794,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     {
         $clo = $column->getLowercasedName();
 
-        $dateTimeClass = $this->getDateTimeClass($column);
+        $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
+        if (!$dateTimeClass) {
+            $dateTimeClass = '\DateTime';
+        }
 
         $handleMysqlDate = false;
         if ($this->getPlatform() instanceof MysqlPlatform) {
@@ -888,8 +896,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     {
         $clo = $column->getLowercasedName();
 
-        $dateTimeClass = $this->getDateTimeClass($column);
-
+        $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
+        if (!$dateTimeClass) {
+            $dateTimeClass = '\DateTime';
+        }
         $this->declareClasses($dateTimeClass);
         $defaultfmt = null;
 
@@ -914,7 +924,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         if (\$format === null) {
             return \$this->$clo;
         } else {
-            return \$this->$clo instanceof \DateTimeInterface ? \$this->{$clo}->format(\$format) : null;
+            return \$this->$clo instanceof \DateTime ? \$this->{$clo}->format(\$format) : null;
         }";
     }
 
@@ -1016,30 +1026,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
      */
     protected function addBooleanAccessor(&$script, Column $column)
     {
-        $name = self::getBooleanAccessorName($column);
-        if (in_array($name, ClassTools::getPropelReservedMethods())) {
-            //TODO: Issue a warning telling the user to use default accessors
-            return; // Skip boolean accessors for reserved names
-        }
         $this->addDefaultAccessorComment($script, $column);
         $this->addBooleanAccessorOpen($script, $column);
         $this->addBooleanAccessorBody($script, $column);
         $this->addDefaultAccessorClose($script);
-    }
-
-    /**
-     * Returns the name to be used as boolean accessor name
-     *
-     * @param Column $column
-     * @return string
-     */
-    protected static function getBooleanAccessorName(Column $column)
-    {
-        $name = $column->getCamelCaseName();
-        if (!preg_match('/^(?:is|has)(?=[A-Z])/', $name)) {
-            $name = 'is' . ucfirst($name);
-        }
-        return $name;
     }
 
     /**
@@ -1050,7 +1040,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
      */
     public function addBooleanAccessorOpen(&$script, Column $column)
     {
-        $name = self::getBooleanAccessorName($column);
+        $name = $column->getCamelCaseName();
+        if (!preg_match('/^(?:is|has)(?=[A-Z])/', $name)) {
+            $name = 'is' . ucfirst($name);
+        }
         $visibility = $column->getAccessorVisibility();
 
         $script .= "
@@ -1697,8 +1690,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     {
         $clo = $col->getLowercasedName();
 
-        $dateTimeClass = $this->getDateTimeClass($col);
-
+        $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
+        if (!$dateTimeClass) {
+            $dateTimeClass = '\DateTime';
+        }
         $this->declareClasses($dateTimeClass, '\Propel\Runtime\Util\PropelDateTime');
 
         $this->addTemporalMutatorComment($script, $col);
@@ -1723,10 +1718,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
                     $format = 'Y-m-d';
                     break;
                 case 'TIME':
-                    $format = 'H:i:s.u';
+                    $format = 'H:i:s';
                     break;
                 default:
-                    $format = 'Y-m-d H:i:s.u';
+                    $format = 'Y-m-d H:i:s';
             }
             $script .= "
             if (\$this->{$clo} === null || \$dt === null || \$dt->format(\"$format\") !== \$this->{$clo}->format(\"$format\")) {";
@@ -1749,7 +1744,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     /**
      * Sets the value of [$clo] column to a normalized version of the date/time value specified.
      * ".$col->getDescription()."
-     * @param  mixed \$v string, integer (timestamp), or \DateTimeInterface value.
+     * @param  mixed \$v string, integer (timestamp), or \DateTime value.
      *               Empty strings are treated as NULL.
      * @return \$this|".$this->getObjectClassName(true)." The current object (for fluent API support)
      */";
@@ -2257,7 +2252,10 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
                 \$this->$clo = null;
             }";
                 } elseif ($col->isTemporalType()) {
-                    $dateTimeClass = $this->getDateTimeClass($col);
+                    $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
+                    if (!$dateTimeClass) {
+                        $dateTimeClass = '\DateTime';
+                    }
                     $handleMysqlDate = false;
                     if ($this->getPlatform() instanceof MysqlPlatform) {
                         if ($col->getType() === PropelTypes::TIMESTAMP) {
@@ -2569,7 +2567,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             foreach ($fks as $fk) {
                 $script .= "
             if (null !== \$this->" . $this->getFKVarName($fk) . ") {
-                {$this->addToArrayKeyLookUp($fk->getPhpName(), $fk->getForeignTable(), false)}
+                {$this->addToArrayKeyLookUp($fk->getForeignTable(), false)}
                 \$result[\$key] = \$this->" . $this->getFKVarName($fk) . "->toArray(\$keyType, \$includeLazyLoadColumns,  \$alreadyDumpedObjects, true);
             }";
             }
@@ -2577,13 +2575,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
                 if ($fk->isLocalPrimaryKey()) {
                     $script .= "
             if (null !== \$this->" . $this->getPKRefFKVarName($fk) . ") {
-                {$this->addToArrayKeyLookUp($fk->getRefPhpName(), $fk->getTable(), false)}
+                {$this->addToArrayKeyLookUp($fk->getTable(), false)}
                 \$result[\$key] = \$this->" . $this->getPKRefFKVarName($fk) . "->toArray(\$keyType, \$includeLazyLoadColumns, \$alreadyDumpedObjects, true);
             }";
                 } else {
                     $script .= "
             if (null !== \$this->" . $this->getRefFKCollVarName($fk) . ") {
-                {$this->addToArrayKeyLookUp($fk->getRefPhpName(), $fk->getTable(), true)}
+                {$this->addToArrayKeyLookUp($fk->getTable(), true)}
                 \$result[\$key] = \$this->" . $this->getRefFKCollVarName($fk) . "->toArray(null, false, \$keyType, \$includeLazyLoadColumns, \$alreadyDumpedObjects);
             }";
                 }
@@ -2602,12 +2600,9 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
      * Adds the switch-statement for looking up the array-key name for toArray
      * @see toArray
      */
-    protected function addToArrayKeyLookUp($phpName, Table $table, $plural)
+    protected function addToArrayKeyLookUp(Table $table, $plural)
     {
-        if($phpName == "") {
-            $phpName = $table->getPhpName();  
-        }
-        
+        $phpName = $table->getPhpName();
         $camelCaseName = $table->getCamelCaseName();
         $fieldName = $table->getName();
 
@@ -5719,7 +5714,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     protected function addDoInsertBodyStandard()
     {
         return "
-        \$pk = \$criteria->doInsert(\$con);";
+        \$pk = \$criteria->insert(\$con);";
     }
 
     protected function addDoInsertBodyWithIdMethod()
@@ -5822,14 +5817,11 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         // if non auto-increment but using sequence, get the id first
         if (!$platform->isNativeIdMethodAutoIncrement() && $table->getIdMethod() == "native") {
             $column = $table->getFirstPrimaryKeyColumn();
-            if (!$column) {
-                throw new PropelException('Cannot find primary key column in table `' . $table->getName() . '`.');
-            }
             $columnProperty = $column->getLowercasedName();
             $script .= "
         if (null === \$this->{$columnProperty}) {
             try {";
-            $script .= $platform->getIdentifierPhp('$this->'. $columnProperty, '$con', $primaryKeyMethodInfo, '                ', $column->getPhpType());
+            $script .= $platform->getIdentifierPhp('$this->'. $columnProperty, '$con', $primaryKeyMethodInfo, '                ');
             $script .= "
             } catch (Exception \$e) {
                 throw new PropelException('Unable to get sequence id.', 0, \$e);
@@ -6045,13 +6037,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             \$con = Propel::getServiceContainer()->getWriteConnection(".$this->getTableMapClass()."::DATABASE_NAME);
         }
 
-        return \$con->transaction(function () use (\$con".($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "").") {";
+        return \$con->transaction(function () use (\$con".($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "").") {
+            \$isInsert = \$this->isNew();";
 
         if ($this->getBuildProperty('generator.objectModel.addHooks')) {
             // save with runtime hooks
             $script .= "
-            \$ret = \$this->preSave(\$con);
-            \$isInsert = \$this->isNew();";
+            \$ret = \$this->preSave(\$con);";
             $this->applyBehaviorModifier('preSave', $script, "            ");
             $script .= "
             if (\$isInsert) {
@@ -6085,8 +6077,6 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             return \$affectedRows;";
         } else {
             // save without runtime hooks
-            $script .= "
-            \$isInsert = \$this->isNew();";
             $this->applyBehaviorModifier('preSave', $script, "            ");
             if ($this->hasBehaviorModifier('preUpdate')) {
                 $script .= "
@@ -6517,19 +6507,5 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $script .= $this->renderTemplate('baseObjectMethodMagicCall', [
                 'behaviorCallScript' => $behaviorCallScript
                 ]);
-    }
-
-    protected function getDateTimeClass(Column $column)
-    {
-        if (PropelTypes::isPhpObjectType($column->getPhpType())) {
-            return $column->getPhpType();
-        }
-
-        $dateTimeClass = $this->getBuildProperty('generator.dateTime.dateTimeClass');
-        if (!$dateTimeClass) {
-            $dateTimeClass = '\DateTime';
-        }
-
-        return $dateTimeClass;
     }
 }

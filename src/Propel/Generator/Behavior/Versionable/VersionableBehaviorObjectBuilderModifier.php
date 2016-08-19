@@ -110,7 +110,7 @@ class VersionableBehaviorObjectBuilderModifier
     public function postDelete($builder)
     {
         $this->builder = $builder;
-        if (!$builder->getPlatform()->supportsNativeDeleteTrigger() && !$builder->getBuildProperty('generator.objectModel.emulateForeignKeyConstraints')) {
+        if (!$builder->getPlatform()->supportsNativeDeleteTrigger() && !$builder->get()['generator']['objectModel']['emulateForeignKeyConstraints']) {
             $script = "// emulate delete cascade
 {$this->getVersionQueryClassName()}::create()
     ->filterBy{$this->table->getPhpName()}(\$this)
@@ -222,10 +222,9 @@ public function enforceVersioning()
 /**
  * Checks whether the current state must be recorded as a version
  *
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
  * @return  boolean
  */
-public function isVersioningNecessary(ConnectionInterface \$con = null)
+public function isVersioningNecessary(\$con = null)
 {
     if (\$this->alreadyInSave) {
         return false;
@@ -247,49 +246,22 @@ public function isVersioningNecessary(ConnectionInterface \$con = null)
     }
 ";
         }
-
+        $plural = true;
         foreach ($this->behavior->getVersionableReferrers() as $fk) {
-
-            if ($fk->isLocalPrimaryKey()) {
-
-                $fkGetter = $this->builder->getRefFKPhpNameAffix($fk);
-                $script .= "
-    if (\$this->single{$fkGetter}) {
-
-        // to avoid infinite loops, emulate in save
-        \$this->alreadyInSave = true;
-
-        if (\$this->single{$fkGetter}->isVersioningNecessary(\$con)) {
-
+            $fkGetter = $this->builder->getRefFKPhpNameAffix($fk, $plural);
+            $script .= "
+    // to avoid infinite loops, emulate in save
+    \$this->alreadyInSave = true;
+    foreach (\$this->get{$fkGetter}(null, \$con) as \$relatedObject) {
+        if (\$relatedObject->isVersioningNecessary(\$con)) {
             \$this->alreadyInSave = false;
+
             return true;
         }
-        \$this->alreadyInSave = false;
     }
+    \$this->alreadyInSave = false;
 ";
-            } else {
-
-                $fkGetter = $this->builder->getRefFKPhpNameAffix($fk, $plural = true);
-                $script .= "
-    if (\$this->coll{$fkGetter}) {
-
-        // to avoid infinite loops, emulate in save
-        \$this->alreadyInSave = true;
-
-        foreach (\$this->get{$fkGetter}(null, \$con) as \$relatedObject) {
-
-            if (\$relatedObject->isVersioningNecessary(\$con)) {
-
-                \$this->alreadyInSave = false;
-                return true;
-            }
         }
-        \$this->alreadyInSave = false;
-    }
-";
-            }
-        }
-
         $script .= "
 
     return false;
@@ -306,11 +278,11 @@ public function isVersioningNecessary(ConnectionInterface \$con = null)
 /**
  * Creates a version of the current object and saves it.
  *
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  *
  * @return  {$versionARClassName} A version object
  */
-public function addVersion(ConnectionInterface \$con = null)
+public function addVersion(\$con = null)
 {
     \$this->enforceVersion = false;
 
@@ -333,29 +305,14 @@ public function addVersion(ConnectionInterface \$con = null)
         }
         $plural = true;
         foreach ($this->behavior->getVersionableReferrers() as $fk) {
-            $plural = !$fk->isLocalPrimaryKey();
             $fkGetter = $this->builder->getRefFKPhpNameAffix($fk, $plural);
             $idsColumn = $this->behavior->getReferrerIdsColumn($fk);
             $versionsColumn = $this->behavior->getReferrerVersionsColumn($fk);
             $script .= "
-    \$object = \$this->get{$fkGetter}(null, \$con);
-            ";
-            if (!$fk->isLocalPrimaryKey()) {
-                $script .= "
-
-    if (\$object && \$relateds = \$object->toKeyValue('{$fk->getForeignColumn()->getPhpName()}', 'Version')) {
+    if (\$relateds = \$this->get{$fkGetter}(null, \$con)->toKeyValue('{$fk->getForeignColumn()->getPhpName()}', 'Version')) {
         \$version->set{$idsColumn->getPhpName()}(array_keys(\$relateds));
         \$version->set{$versionsColumn->getPhpName()}(array_values(\$relateds));
-    }
-                ";
-            } else {
-                $script .= "
-    if (\$object && \$object->getVersion()) {
-      \$version->set{$idsColumn->getPhpName()}(array(\$object->getPrimaryKey()));
-      \$version->set{$versionsColumn->getPhpName()}(array(\$object->getVersion()));
-    }
-                ";
-            }
+    }";
         }
             $script .= "
     \$version->save(\$con);
@@ -373,11 +330,11 @@ public function addVersion(ConnectionInterface \$con = null)
  * Sets the properties of the current object to the value they had at a specific version
  *
  * @param   integer \$versionNumber The version number to read
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con The connection to use
  *
  * @return  \$this|{$ARclassName} The current object (for fluent API support)
  */
-public function toVersion(\$versionNumber, ConnectionInterface \$con = null)
+public function toVersion(\$versionNumber, \$con = null)
 {
     \$version = \$this->getOneVersion(\$versionNumber, \$con);
     if (!\$version) {
@@ -436,7 +393,7 @@ public function populateFromVersion(\$version, \$con = null, &\$loadedObjects = 
             \$related = new {$relatedClassName}();
             \$relatedVersion = {$relatedVersionQueryClassName}::create()
                 ->filterBy{$fk->getForeignColumn()->getPhpName()}(\$fkValue)
-                ->filterBy{$col->getPhpName()}(\$version->get{$fkVersionColumnPhpName}())
+                ->filterByVersion(\$version->get{$fkVersionColumnPhpName}())
                 ->findOne(\$con);
             \$related->populateFromVersion(\$relatedVersion, \$con, \$loadedObjects);
             \$related->setNew(false);
@@ -497,11 +454,11 @@ public function populateFromVersion(\$version, \$con = null, &\$loadedObjects = 
 /**
  * Gets the latest persisted version number for the current object
  *
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  *
  * @return  integer
  */
-public function getLastVersionNumber(ConnectionInterface \$con = null)
+public function getLastVersionNumber(\$con = null)
 {
     \$v = {$this->getVersionQueryClassName()}::create()
         ->filterBy{$this->table->getPhpName()}(\$this)
@@ -522,11 +479,11 @@ public function getLastVersionNumber(ConnectionInterface \$con = null)
 /**
  * Checks whether the current object is the latest one
  *
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  *
  * @return  Boolean
  */
-public function isLastVersion(ConnectionInterface \$con = null)
+public function isLastVersion(\$con = null)
 {
     return \$this->getLastVersionNumber(\$con) == \$this->getVersion();
 }
@@ -541,11 +498,11 @@ public function isLastVersion(ConnectionInterface \$con = null)
  * Retrieves a version object for this entity and a version number
  *
  * @param   integer \$versionNumber The version number to read
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  *
  * @return  {$versionARClassName} A version object
  */
-public function getOneVersion(\$versionNumber, ConnectionInterface \$con = null)
+public function getOneVersion(\$versionNumber, \$con = null)
 {
     return {$this->getVersionQueryClassName()}::create()
         ->filterBy{$this->table->getPhpName()}(\$this)
@@ -568,11 +525,11 @@ public function getOneVersion(\$versionNumber, ConnectionInterface \$con = null)
 /**
  * Gets all the versions of this object, in incremental order
  *
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  *
  * @return  ObjectCollection|{$versionARClassName}[] A list of {$versionARClassName} objects
  */
-public function getAllVersions(ConnectionInterface \$con = null)
+public function getAllVersions(\$con = null)
 {
     \$criteria = new Criteria();
     \$criteria->addAscendingOrderByColumn({$this->builder->getColumnConstant($versionForeignColumn)});
@@ -663,12 +620,12 @@ protected function computeDiff(\$fromVersion, \$toVersion, \$keys = 'columns', \
  *
  * @param   integer             \$versionNumber
  * @param   string              \$keys Main key used for the result diff (versions|columns)
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  * @param   array               \$ignoredColumns  The columns to exclude from the diff.
  *
  * @return  array A list of differences
  */
-public function compareVersion(\$versionNumber, \$keys = 'columns', ConnectionInterface \$con = null, \$ignoredColumns = array())
+public function compareVersion(\$versionNumber, \$keys = 'columns', \$con = null, \$ignoredColumns = array())
 {
     \$fromVersion = \$this->toArray();
     \$toVersion = \$this->getOneVersion(\$versionNumber, \$con)->toArray();
@@ -694,12 +651,12 @@ public function compareVersion(\$versionNumber, \$keys = 'columns', ConnectionIn
  * @param   integer             \$fromVersionNumber
  * @param   integer             \$toVersionNumber
  * @param   string              \$keys Main key used for the result diff (versions|columns)
- * @param   ConnectionInterface \$con The ConnectionInterface connection to use.
+ * @param   ConnectionInterface \$con the connection to use
  * @param   array               \$ignoredColumns  The columns to exclude from the diff.
  *
  * @return  array A list of differences
  */
-public function compareVersions(\$fromVersionNumber, \$toVersionNumber, \$keys = 'columns', ConnectionInterface \$con = null, \$ignoredColumns = array())
+public function compareVersions(\$fromVersionNumber, \$toVersionNumber, \$keys = 'columns', \$con = null, \$ignoredColumns = array())
 {
     \$fromVersion = \$this->getOneVersion(\$fromVersionNumber, \$con)->toArray();
     \$toVersion = \$this->getOneVersion(\$toVersionNumber, \$con)->toArray();
@@ -724,13 +681,10 @@ public function compareVersions(\$fromVersionNumber, \$toVersionNumber, \$keys =
 /**
  * retrieve the last \$number versions.
  *
- * @param  Integer             \$number The number of record to return.
- * @param  Criteria            \$criteria The Criteria object containing modified values.
- * @param  ConnectionInterface \$con The ConnectionInterface connection to use.
- *
+ * @param Integer \$number the number of record to return.
  * @return PropelCollection|{$versionARClassName}[] List of {$versionARClassName} objects
  */
-public function getLastVersions(\$number = 10, \$criteria = null, ConnectionInterface \$con = null)
+public function getLastVersions(\$number = 10, \$criteria = null, \$con = null)
 {
     \$criteria = {$this->getVersionQueryClassName()}::create(null, \$criteria);
     \$criteria->addDescendingOrderByColumn({$versionTableMapClassName}::{$colPrefix}VERSION);

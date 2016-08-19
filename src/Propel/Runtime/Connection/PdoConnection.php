@@ -46,16 +46,7 @@ class PdoConnection extends \PDO implements ConnectionInterface
      */
     public function __construct($dsn, $user = null, $password = null, array $options = null)
     {
-
-        // Convert option keys from a string to a \PDO:: constant
-        $pdoOptions = [];
-        if (is_array($options)) {
-            foreach ($options as $key => $option) {
-                $pdoOptions[constant('self::' . $key)] = $option;
-            }
-        }
-
-        parent::__construct($dsn, $user, $password, $pdoOptions);
+        parent::__construct($dsn, $user, $password, $options);
 
         $this->setAttribute(\PDO::ATTR_STATEMENT_CLASS, ['\Propel\Runtime\Adapter\Pdo\PdoStatement', []]);
         $this->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);

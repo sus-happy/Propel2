@@ -212,7 +212,7 @@ class MysqlSchemaParser extends AbstractSchemaParser
             }
         } elseif (preg_match('/^(\w+)\(/', $row['Type'], $matches)) {
             $nativeType = $matches[1];
-            if ($nativeType === 'enum' || $nativeType === 'set') {
+            if ($nativeType === 'enum') {
                 $sqlType = $row['Type'];
             }
         } else {

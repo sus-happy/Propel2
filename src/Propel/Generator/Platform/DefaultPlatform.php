@@ -1283,7 +1283,7 @@ ALTER TABLE %s ADD
      */
     public function getTimestampFormatter()
     {
-        return 'Y-m-d H:i:s.u';
+        return 'Y-m-d H:i:s';
     }
 
     /**
@@ -1292,7 +1292,7 @@ ALTER TABLE %s ADD
      */
     public function getTimeFormatter()
     {
-        return 'H:i:s.u';
+        return 'H:i:s';
     }
 
     /**
@@ -1344,16 +1344,15 @@ if (is_resource($columnValueAccessor)) {
      * $this->id = $con->lastInsertId();
      * </code>
      */
-    public function getIdentifierPhp($columnValueMutator, $connectionVariableName = '$con', $sequenceName = '', $tab = "            ", $phpType = null)
+    public function getIdentifierPhp($columnValueMutator, $connectionVariableName = '$con', $sequenceName = '', $tab = "            ")
     {
         return sprintf(
             "
-%s%s = %s%s->lastInsertId(%s);",
+%s%s = %s->lastInsertId(%s);",
             $tab,
             $columnValueMutator,
             $connectionVariableName,
-            $sequenceName ? ("'" . $sequenceName . "'") : '',
-            $phpType ? '('.$phpType.') ' : ''
+            $sequenceName ? ("'" . $sequenceName . "'") : ''
         );
     }
 
@@ -1395,7 +1394,9 @@ if (is_resource($columnValueAccessor)) {
                 if ($fk->getForeignTable() && !$fk->getForeignTable()->isUnique($fk->getForeignColumnObjects())) {
                     $unique = new Unique();
                     $unique->setColumns($fk->getForeignColumnObjects());
-                    $fk->getForeignTable()->addUnique($unique);
+
+                    // @todo: Disabled
+                    // $fk->getForeignTable()->addUnique($unique);
                 }
             }
         }

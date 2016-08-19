@@ -193,8 +193,7 @@ class PropelDateTimeTest extends \PHPUnit_Framework_TestCase
             'Y-m-d H:is'		  => ['2011-08-10 10:22:15', '2011-08-10 10:22:15'],
             'Ymd'		         => ['20110810', '2011-08-10 00:00:00'],
             'Ymd'		         => ['20110720', '2011-07-20 00:00:00'],
-            'datetime_object' => [new DateTime('2011-08-10 10:23:10'), '2011-08-10 10:23:10'],
-            'datetimeimmutable_object' => [new \DateTimeImmutable('2011-08-10 10:23:10'), '2011-08-10 10:23:10'],
+            'datetime_object' => [new DateTime('2011-08-10 10:23:10'), '2011-08-10 10:23:10']
         ];
     }
 
@@ -215,16 +214,6 @@ class PropelDateTimeTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(false, TestPropelDateTime::isTimestamp('20110325'));
         $this->assertEquals(true, TestPropelDateTime::isTimestamp(1319580000));
         $this->assertEquals(false, TestPropelDateTime::isTimestamp('2011-07-20 00:00:00'));
-    }
-
-    public function testCreateHighPrecision()
-    {
-        $createHP = PropelDateTime::createHighPrecision();
-        $this->assertInstanceOf(DateTime::class, $createHP);
-
-        setlocale(LC_ALL, 'de_DE.UTF-8');
-        $createHP = PropelDateTime::createHighPrecision();
-        $this->assertInstanceOf(DateTime::class, $createHP);
     }
 }
 

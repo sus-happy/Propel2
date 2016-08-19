@@ -663,11 +663,7 @@ EOF;
                             'classname' => 'Propel\Runtime\Connection\DebugPDO',
                             'dsn' => 'sqlite::memory:',
                             'user' => '',
-                            'password' => '',
-                            'model_paths' => [
-                                'src',
-                                'vendor'
-                            ]
+                            'password' => ''
                         ]
                     ]
                 ],
@@ -707,8 +703,6 @@ propel:
               dsn: mysql:host=localhost;dbname=mydb
               user: root
               password:
-              model_paths:
-                - src
           yoursource:
               adapter: mysql
               classname: Propel\Runtime\Connection\DebugPDO
@@ -733,21 +727,14 @@ EOF;
                 'classname' => 'Propel\Runtime\Connection\DebugPDO',
                 'dsn' => 'mysql:host=localhost;dbname=mydb',
                 'user' => 'root',
-                'password' => '',
-                'model_paths' => [
-                    'src'
-                ]
+                'password' => ''
             ],
             'yoursource' => [
                 'adapter' => 'mysql',
                 'classname' => 'Propel\Runtime\Connection\DebugPDO',
                 'dsn' => 'mysql:host=localhost;dbname=yourdb',
                 'user' => 'root',
-                'password' => '',
-                'model_paths' => [
-                    'src',
-                    'vendor'
-                ]
+                'password' => ''
             ]
         ];
 
@@ -757,10 +744,7 @@ EOF;
                 'classname' => 'Propel\Runtime\Connection\DebugPDO',
                 'dsn' => 'mysql:host=localhost;dbname=mydb',
                 'user' => 'root',
-                'password' => '',
-                'model_paths' => [
-                    'src'
-                ]
+                'password' => ''
             ]
         ];
 

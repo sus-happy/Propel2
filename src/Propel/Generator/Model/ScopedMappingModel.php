@@ -154,7 +154,7 @@ abstract class ScopedMappingModel extends MappingModel
             $this->packageOverridden = true;
         }
 
-        if ($schema && !$this->namespace && $this->getBuildProperty('generator.schema.autoNamespace')) {
+        if ($schema && !$this->namespace && $this->getBuildProperty('schemaAutoNamespace')) {
             $this->namespace = $schema;
         }
     }

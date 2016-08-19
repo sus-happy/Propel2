@@ -347,7 +347,7 @@ class ModelCriteria extends BaseModelCriteria
 
     /**
      * Adds a LIMIT clause (or its subselect equivalent) to the query
-     * Alias for Criteria::setLimit()
+     * Alias for Criteria:::setLimit()
      *
      * @param int $limit Maximum number of results to return by the query
      *
@@ -1861,7 +1861,7 @@ class ModelCriteria extends BaseModelCriteria
 
             if (false !== strpos($key, '.')) {
                 list($tableName, $columnName) = explode('.', $key);
-                $realColumnName = substr($realFullColumnName, strrpos($realFullColumnName, '.') + 1);
+                list($realTableName, $realColumnName) = explode('.', $realFullColumnName);
                 if (isset($this->aliases[$tableName])) {
                     //don't replace a alias with their real table name
                     return $this->quoteIdentifier($tableName.'.'.$realColumnName);

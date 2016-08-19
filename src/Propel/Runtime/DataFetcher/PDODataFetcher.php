@@ -108,8 +108,7 @@ class PDODataFetcher extends AbstractDataFetcher
      */
     public function rewind()
     {
-        if ($this->dataObject)
-            $this->current = $this->dataObject->fetch($this->style);
+        $this->current = $this->dataObject->fetch($this->style);
     }
 
     /**
@@ -128,7 +127,7 @@ class PDODataFetcher extends AbstractDataFetcher
      */
     public function count()
     {
-        if ($this->dataObject && 'sqlite' === $this->dataObject->getConnection()->getAttribute(\PDO::ATTR_DRIVER_NAME)) {
+        if ('sqlite' === $this->dataObject->getConnection()->getAttribute(\PDO::ATTR_DRIVER_NAME)) {
             $lastQuery = $this->dataObject->getStatement()->queryString;
             if ('SELECT ' === substr(trim(strtoupper($lastQuery)), 0, 7)) {
                 // SQLITE does not support rowCount() in 3.x on SELECTs anymore
@@ -145,7 +144,7 @@ class PDODataFetcher extends AbstractDataFetcher
             }
         }
 
-        return ($this->dataObject ? $this->dataObject->rowCount() : 0);
+        return $this->dataObject->rowCount();
     }
 
     /**
@@ -169,7 +168,6 @@ class PDODataFetcher extends AbstractDataFetcher
      */
     public function bindColumn($column, &$param, $type = null, $maxlen = null, $driverdata = null)
     {
-        if ($this->dataObject)
-            $this->dataObject->bindColumn($column, $param, $type, $maxlen, $driverdata);
+        $this->dataObject->bindColumn($column, $param, $type, $maxlen, $driverdata);
     }
 }

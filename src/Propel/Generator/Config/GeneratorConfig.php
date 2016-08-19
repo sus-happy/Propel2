@@ -240,10 +240,7 @@ class GeneratorConfig extends ConfigurationManager implements GeneratorConfigInt
         $username = isset($buildConnection['user']) && $buildConnection['user'] ? $buildConnection['user'] : null;
         $password = isset($buildConnection['password']) && $buildConnection['password'] ? $buildConnection['password'] : null;
 
-        // Get options from and config and default to null
-        $options = isset($buildConnection['options']) && is_array($buildConnection['options']) ? $buildConnection['options'] : null;
-
-        $con = ConnectionFactory::create(['dsn' => $dsn, 'user' => $username, 'password' => $password, 'options' => $options], AdapterFactory::create($buildConnection['adapter']));
+        $con = ConnectionFactory::create(['dsn' => $dsn, 'user' => $username, 'password' => $password], AdapterFactory::create($buildConnection['adapter']));
 
         return $con;
     }

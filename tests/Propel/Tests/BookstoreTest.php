@@ -499,7 +499,7 @@ class BookstoreTest extends BookstoreEmptyTestBase
         // --------------------------
 
         $results = BookQuery::create()
-            ->filterByTitle('Harry%', Criteria::LIKE)
+            ->filterByTitle('Harry%')
             ->find();
         $this->assertEquals(1, count($results));
 

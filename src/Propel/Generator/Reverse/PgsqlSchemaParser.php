@@ -56,7 +56,6 @@ class PgsqlSchemaParser extends AbstractSchemaParser
         'float8'      => PropelTypes::DOUBLE,
         'char'        => PropelTypes::CHAR,
         'character'   => PropelTypes::CHAR,
-        'character varying'   => PropelTypes::VARCHAR,
         'varchar'     => PropelTypes::VARCHAR,
         'date'        => PropelTypes::DATE,
         'time'        => PropelTypes::TIME,
@@ -68,9 +67,7 @@ class PgsqlSchemaParser extends AbstractSchemaParser
         'bytea'       => PropelTypes::BLOB,
         'text'        => PropelTypes::LONGVARCHAR,
         'time without time zone' => PropelTypes::TIME,
-        'time with time zone' => PropelTypes::TIME,
         'timestamp without time zone' => PropelTypes::TIMESTAMP,
-        'timestamp with time zone' => PropelTypes::TIMESTAMP,
         'double precision' => PropelTypes::DOUBLE,
     ];
 

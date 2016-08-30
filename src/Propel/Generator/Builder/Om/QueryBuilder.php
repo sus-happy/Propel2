@@ -26,6 +26,9 @@ use Propel\Generator\Model\Table;
  */
 class QueryBuilder extends AbstractOMBuilder
 {
+    // For Redeclare problems
+    protected $addedRelationRefs = [];
+
     /**
      * Returns the package for the [base] object classes.
      *
@@ -1226,6 +1229,14 @@ abstract class ".$this->getUnqualifiedClassName()." extends " . $parentClass . "
         $fkPhpName = $this->getClassNameFromBuilder($fkStubObjectBuilder, true);
         $relationName = $this->getFKPhpNameAffix($fk);
         $objectName = '$' . $fkTable->getCamelCaseName();
+
+        // For Redeclare problems
+        if(in_array($relationName, $this->addedRelationRefs)) {
+            return;
+        }
+        $this->addedRelationRefs[] = $relationName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Filter the query by a related $fkPhpName object
@@ -1309,6 +1320,14 @@ abstract class ".$this->getUnqualifiedClassName()." extends " . $parentClass . "
         $fkPhpName = $this->getClassNameFromBuilder($fkStubObjectBuilder, true);
         $relationName = $this->getRefFKPhpNameAffix($fk);
         $objectName = '$' . $fkTable->getCamelCaseName();
+
+        // For Redeclare problems
+        if(in_array($relationName, $this->addedRelationRefs)) {
+            return;
+        }
+        $this->addedRelationRefs[] = $relationName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Filter the query by a related $fkPhpName object
@@ -1502,6 +1521,14 @@ abstract class ".$this->getUnqualifiedClassName()." extends " . $parentClass . "
             $crossTableName = $crossRefTable->getName();
             $relName = $this->getFKPhpNameAffix($crossFK, $plural = false);
             $objectName = '$' . $foreignTable->getCamelCaseName();
+
+            // For Redeclare problems
+            if(in_array($relName, $this->addedRelationRefs)) {
+                continue;
+            }
+            $this->addedRelationRefs[] = $relName;
+            // End For Redeclare problems
+
             $script .= "
     /**
      * Filter the query by a related $fkPhpName object

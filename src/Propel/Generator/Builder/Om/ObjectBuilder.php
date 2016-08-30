@@ -34,6 +34,11 @@ use Propel\Generator\Platform\SqlsrvPlatform;
  */
 class ObjectBuilder extends AbstractObjectBuilder
 {
+    // For Redeclare problems
+    protected $addedRefFkAttributes = [];
+    protected $addedRefGetFunctions = [];
+    protected $addedRefCountFunctions = [];
+    protected $addedRefAddFunctions = [];
 
     /**
      * Returns the package for the base object classes.
@@ -4313,6 +4318,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         foreach ($crossFKs->getCrossForeignKeys() as $fk) {
             $className = $this->getClassNameFromTable($fk->getForeignTable());
 
+            // For Redeclare problems
+            $fkName = $this->getFKPhpNameAffix($fk, true);
+            if(in_array($fkName, $this->addedRefFkAttributes)) {
+                return;
+            }
+            $this->addedRefFkAttributes[] = $fkName;
+            // End For Redeclare problems
+
             $script .= "
     /**
      * @var        ObjectCollection|{$className}[] Cross Collection to store aggregation of $className objects.
@@ -4966,6 +4979,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $signature = $shortSignature = $normalizedShortSignature = $phpDoc = [];
             $this->extractCrossInformation($crossFKs, [$firstFK], $signature, $shortSignature, $normalizedShortSignature, $phpDoc);
 
+            // For Redeclare problems
+            if(in_array($firstFkName, $this->addedRefGetFunctions)) {
+                return;
+            }
+            $this->addedRefGetFunctions[] = $firstFkName;
+            // End For Redeclare problems
+
             $signature = array_map(function($item) {
                     return $item . ' = null';
                 }, $signature);
@@ -4994,6 +5014,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
 
         foreach ($crossFKs->getCrossForeignKeys() as $crossFK) {
             $relatedName = $this->getFKPhpNameAffix($crossFK, true);
+
+            // For Redeclare problems
+            if(in_array($relatedName, $this->addedRefGetFunctions)) {
+                return;
+            }
+            $this->addedRefGetFunctions[] = $relatedName;
+            // End For Redeclare problems
+
             $relatedObjectClassName = $this->getClassNameFromBuilder($this->getNewStubObjectBuilder($crossFK->getForeignTable()));
             $relatedQueryClassName = $this->getClassNameFromBuilder($this->getNewStubQueryBuilder($crossFK->getForeignTable()));
 
@@ -5155,6 +5183,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $relatedQueryClassName = $this->getClassNameFromBuilder($this->getNewStubQueryBuilder($crossFK->getForeignTable()));
         }
 
+        // For Redeclare problems
+        if(in_array($relatedName, $this->addedRefCountFunctions)) {
+            return;
+        }
+        $this->addedRefCountFunctions[] = $relatedName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Gets the number of $relatedObjectClassName objects related by a many-to-many relationship
@@ -5202,6 +5237,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $relatedObjectClassName = $this->getClassNameFromBuilder($this->getNewStubObjectBuilder($firstFK->getForeignTable()));
             $signature = $shortSignature = $normalizedShortSignature = $phpDoc = [];
             $this->extractCrossInformation($crossFKs, [$firstFK], $signature, $shortSignature, $normalizedShortSignature, $phpDoc);
+
+            // For Redeclare problems
+            if(in_array($firstFkName, $this->addedRefCountFunctions)) {
+                return;
+            }
+            $this->addedRefCountFunctions[] = $firstFkName;
+            // End For Redeclare problems
 
             $signature = array_map(function($item) {
                     return $item . ' = null';
@@ -5257,6 +5299,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $relatedObjectClassName = $this->getFKPhpNameAffix($crossFK, false);
             $crossObjectClassName = $this->getClassNameFromTable($crossFK->getForeignTable());
             list ($signature, $shortSignature, $normalizedShortSignature, $phpDoc) = $this->getCrossFKAddMethodInformation($crossFKs, $crossFK);
+
+            // For Redeclare problems
+            if(in_array($relatedObjectClassName, $this->addedRefAddFunctions)) {
+                continue;
+            }
+            $this->addedRefAddFunctions[] = $relatedObjectClassName;
+            // End For Redeclare problems
 
             $script .= "
     /**

@@ -3772,6 +3772,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     protected $".$this->getPKRefFKVarName($refFK).";
 ";
         } else {
+            // For Redeclare problems
+            $fkName = $this->getRefFKPhpNameAffix($refFK, true);
+            if(in_array($fkName, $this->addedRefFkAttributes)) {
+                return;
+            }
+            $this->addedRefFkAttributes[] = $fkName;
+            // End For Redeclare problems
+
             $script .= "
     /**
      * @var        ObjectCollection|{$className}[] Collection to store aggregation of $className objects.
@@ -3929,6 +3937,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
 
         $scheduledForDeletion = lcfirst($this->getRefFKPhpNameAffix($refFK, $plural = true)) . "ScheduledForDeletion";
 
+        // For Redeclare problems
+        $refName = $this->getRefFKPhpNameAffix($refFK, false);
+        if(in_array($refName, $this->addedRefAddFunctions)) {
+            continue;
+        }
+        $this->addedRefAddFunctions[] = $refName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Method called to associate a $className object to this object
@@ -3970,6 +3986,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
 
         $joinedTableObjectBuilder = $this->getNewObjectBuilder($refFK->getTable());
         $className = $this->getClassNameFromBuilder($joinedTableObjectBuilder);
+
+        // For Redeclare problems
+        if(in_array($relCol, $this->addedRefCountFunctions)) {
+            return;
+        }
+        $this->addedRefCountFunctions[] = $relCol;
+        // End For Redeclare problems
 
         $script .= "
     /**
@@ -4020,6 +4043,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $collName = $this->getRefFKCollVarName($refFK);
 
         $className = $this->getClassNameFromTable($refFK->getTable());
+
+        // For Redeclare problems
+        if(in_array($relCol, $this->addedRefGetFunctions)) {
+            return;
+        }
+        $this->addedRefGetFunctions[] = $relCol;
+        // End For Redeclare problems
 
         $script .= "
     /**

@@ -39,6 +39,12 @@ class ObjectBuilder extends AbstractObjectBuilder
     protected $addedRefGetFunctions = [];
     protected $addedRefCountFunctions = [];
     protected $addedRefAddFunctions = [];
+    protected $addedRefClearFunctions = [];
+    protected $addedRefInitFunctions = [];
+    protected $addedRefSetFunctions = [];
+    protected $addedRefDoAddFunctions = [];
+    protected $addedRefRemoveFunctions = [];
+    protected $addedRefScheduledAttr = [];
 
     /**
      * Returns the package for the base object classes.
@@ -3864,6 +3870,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $relCol = $this->getRefFKPhpNameAffix($refFK, true);
         $collName = $this->getRefFKCollVarName($refFK);
 
+        // For Redeclare problems
+        if(in_array($relCol, $this->addedRefClearFunctions)) {
+            return;
+        }
+        $this->addedRefClearFunctions[] = $relCol;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Clears out the $collName collection
@@ -3890,6 +3903,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     {
         $relCol = $this->getRefFKPhpNameAffix($refFK, true);
         $collName = $this->getRefFKCollVarName($refFK);
+
+        // For Redeclare problems
+        if(in_array($relCol, $this->addedRefInitFunctions)) {
+            return;
+        }
+        $this->addedRefInitFunctions[] = $relCol;
+        // End For Redeclare problems
 
         $script .= "
     /**
@@ -3940,7 +3960,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         // For Redeclare problems
         $refName = $this->getRefFKPhpNameAffix($refFK, false);
         if(in_array($refName, $this->addedRefAddFunctions)) {
-            continue;
+            return;
         }
         $this->addedRefAddFunctions[] = $refName;
         // End For Redeclare problems
@@ -4125,6 +4145,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $collName = $this->getRefFKCollVarName($refFK);
         $relCol   = $this->getFKPhpNameAffix($refFK, $plural = false);
 
+        // For Redeclare problems
+        if(in_array($relatedName, $this->addedRefSetFunctions)) {
+            return;
+        }
+        $this->addedRefSetFunctions[] = $relatedName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Sets a collection of $className objects related by a one-to-many relationship
@@ -4192,6 +4219,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $lowerRelatedObjectClassName = lcfirst($relatedObjectClassName);
         $collName = $this->getRefFKCollVarName($refFK);
 
+        // For Redeclare problems
+        if(in_array($relatedObjectClassName, $this->addedRefDoAddFunctions)) {
+            return;
+        }
+        $this->addedRefDoAddFunctions[] = $relatedObjectClassName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * @param {$className} \${$lowerRelatedObjectClassName} The $className object to add.
@@ -4226,6 +4260,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $collName    = $this->getRefFKCollVarName($refFK);
         $relCol      = $this->getFKPhpNameAffix($refFK, $plural = false);
         $localColumn = $refFK->getLocalColumn();
+
+        // For Redeclare problems
+        if(in_array($relatedObjectClassName, $this->addedRefRemoveFunctions)) {
+            return;
+        }
+        $this->addedRefRemoveFunctions[] = $relatedObjectClassName;
+        // End For Redeclare problems
 
         $script .= "
     /**
@@ -4351,7 +4392,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             // For Redeclare problems
             $fkName = $this->getFKPhpNameAffix($fk, true);
             if(in_array($fkName, $this->addedRefFkAttributes)) {
-                return;
+                continue;
             }
             $this->addedRefFkAttributes[] = $fkName;
             // End For Redeclare problems
@@ -4374,6 +4415,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     protected function addCrossScheduledForDeletionAttribute(&$script, CrossForeignKeys $crossFKs)
     {
         $name = $this->getCrossScheduledForDeletionVarName($crossFKs);
+
+        // For Redeclare problems
+        if(in_array($name, $this->addedRefScheduledAttr)) {
+            return;
+        }
+        $this->addedRefScheduledAttr[] = $name;
+        // End For Redeclare problems
+
         if (1 < count($crossFKs->getCrossForeignKeys()) || $crossFKs->getUnclassifiedPrimaryKeys()) {
             list($names) = $this->getCrossFKInformation($crossFKs);
             $script .= "
@@ -4414,6 +4463,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $className = $this->getClassNameFromTable($crossFK->getForeignTable());
         $fkName = lcfirst($this->getFKPhpNameAffix($crossFK, true));
 
+        // For Redeclare problems
+        $name = $fkName.'ScheduledForDeletion';
+        if(in_array($name, $this->addedRefScheduledAttr)) {
+            return;
+        }
+        $this->addedRefScheduledAttr[] = $name;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * An array of objects scheduled for deletion.
@@ -4427,6 +4484,14 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
     {
         $className = $this->getClassNameFromTable($refFK->getTable());
         $fkName = lcfirst($this->getRefFKPhpNameAffix($refFK, true));
+
+        // For Redeclare problems
+        $name = $fkName.'ScheduledForDeletion';
+        if(in_array($name, $this->addedRefScheduledAttr)) {
+            return;
+        }
+        $this->addedRefScheduledAttr[] = $name;
+        // End For Redeclare problems
 
         $script .= "
     /**
@@ -4659,6 +4724,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $relCol   = $this->getCrossFKsPhpNameAffix($crossFKs);
         $collName = $this->getCrossFKsVarName($crossFKs);
 
+        // For Redeclare problems
+        if(in_array($relCol, $this->addedRefClearFunctions)) {
+            return;
+        }
+        $this->addedRefClearFunctions[] = $relCol;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * Clears out the {$collName} collection
@@ -4742,6 +4814,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $collectionClass = $init['collectionClass'];
             $relatedObjectClassName = $init['relatedObjectClassName'];
             $foreignTableMapName = $init['foreignTableMapName'];
+
+            // For Redeclare problems
+            if(in_array($relCol, $this->addedRefInitFunctions)) {
+                continue;
+            }
+            $this->addedRefInitFunctions[] = $relCol;
+            // End For Redeclare problems
 
             $script .= "
     /**
@@ -5047,7 +5126,7 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
 
             // For Redeclare problems
             if(in_array($relatedName, $this->addedRefGetFunctions)) {
-                return;
+                continue;
             }
             $this->addedRefGetFunctions[] = $relatedName;
             // End For Redeclare problems
@@ -5135,6 +5214,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
             $relatedObjectClassName = $this->getNewStubObjectBuilder($crossFK->getForeignTable())->getUnqualifiedClassName();
             $collName = $this->getCrossFKVarName($crossFK);
         }
+
+        // For Redeclare problems
+        if(in_array($relatedNamePlural, $this->addedRefSetFunctions)) {
+            return;
+        }
+        $this->addedRefSetFunctions[] = $relatedNamePlural;
+        // End For Redeclare problems
 
         $script .= "
     /**
@@ -5398,6 +5484,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
 
         list ($signature, $shortSignature, $normalizedShortSignature, $phpDoc) = $this->getCrossFKAddMethodInformation($crossFKs);
 
+        // For Redeclare problems
+        if(in_array($relatedObjectClassName, $this->addedRefDoAddFunctions)) {
+            return;
+        }
+        $this->addedRefDoAddFunctions[] = $relatedObjectClassName;
+        // End For Redeclare problems
+
         $script .= "
     /**
      * {$phpDoc}
@@ -5529,6 +5622,13 @@ abstract class ".$this->getUnqualifiedClassName().$parentClass." implements Acti
         $className = $this->getClassNameFromTable($crossFKs->getIncomingForeignKey()->getTable());
         $refKObjectClassName = $this->getRefFKPhpNameAffix($crossFKs->getIncomingForeignKey(), $plural = false);
         $foreignObjectName = '$' . $tblFK->getCamelCaseName();
+
+        // For Redeclare problems
+        if(in_array($relatedObjectClassName, $this->addedRefRemoveFunctions)) {
+            return;
+        }
+        $this->addedRefRemoveFunctions[] = $relatedObjectClassName;
+        // End For Redeclare problems
 
         $script .= "
     /**

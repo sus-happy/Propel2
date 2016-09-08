@@ -22,6 +22,8 @@ use Propel\Generator\Platform\PlatformInterface;
  */
 class TableMapBuilder extends AbstractOMBuilder
 {
+    private $addedRelationMaps = [];
+
     /**
      * Gets the package for the map builder classes.
      * @return string
@@ -558,6 +560,15 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
             $onDelete = $fkey->hasOnDelete() ? "'" . $fkey->getOnDelete() . "'" : 'null';
             $onUpdate = $fkey->hasOnUpdate() ? "'" . $fkey->getOnUpdate() . "'" : 'null';
             $isPolymorphic = $fkey->isPolymorphic() ? 'true' : 'false';
+
+            // For Redeclare problems
+            $key = $this->getFKPhpNameAffix($fkey);
+            if(in_array($key, $this->addedRelationMaps)) {
+                continue;
+            }
+            $this->addedRelationMaps[] = $key;
+            // End For Redeclare problems
+
             $script .= "
         \$this->addRelation('" . $this->getFKPhpNameAffix($fkey) . "', '" . addslashes($this->getNewStubObjectBuilder($fkey->getForeignTable())->getFullyQualifiedClassName()) . "', RelationMap::MANY_TO_ONE, $joinCondition, $onDelete, $onUpdate, null, $isPolymorphic);";
         }
@@ -568,6 +579,15 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
             $onDelete = $fkey->hasOnDelete() ? "'" . $fkey->getOnDelete() . "'" : 'null';
             $onUpdate = $fkey->hasOnUpdate() ? "'" . $fkey->getOnUpdate() . "'" : 'null';
             $isPolymorphic = $fkey->isPolymorphic() ? 'true' : 'false';
+
+            // For Redeclare problems
+            $key = $relationName;
+            if(in_array($key, $this->addedRelationMaps)) {
+                continue;
+            }
+            $this->addedRelationMaps[] = $key;
+            // End For Redeclare problems
+
             $script .= "
         \$this->addRelation('$relationName', '" . addslashes($this->getNewStubObjectBuilder($fkey->getTable())->getFullyQualifiedClassName()) . "', RelationMap::ONE_TO_" . ($fkey->isLocalPrimaryKey() ? "ONE" : "MANY") .", $joinCondition, $onDelete, $onUpdate";
             if ($fkey->isLocalPrimaryKey()) {
@@ -585,6 +605,15 @@ class ".$this->getUnqualifiedClassName()." extends TableMap
                 $pluralName = "'" . $this->getFKPhpNameAffix($crossFK, true) . "'";
                 $onDelete = $crossFK->hasOnDelete() ? "'" . $crossFK->getOnDelete() . "'" : 'null';
                 $onUpdate = $crossFK->hasOnUpdate() ? "'" . $crossFK->getOnUpdate() . "'" : 'null';
+
+                // For Redeclare problems
+                $key = $relationName;
+                if(in_array($key, $this->addedRelationMaps)) {
+                    continue;
+                }
+                $this->addedRelationMaps[] = $key;
+                // End For Redeclare problems
+
                 $script .= "
         \$this->addRelation('$relationName', '" . addslashes($this->getNewStubObjectBuilder($crossFK->getForeignTable())->getFullyQualifiedClassName()) . "', RelationMap::MANY_TO_MANY, array(), $onDelete, $onUpdate, $pluralName);";
             }
